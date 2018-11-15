@@ -6,18 +6,25 @@ import android.support.annotation.Nullable;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivityListFragment extends Fragment {
 
+    private static final String TAG = "ViewsTutorApp";
+
     private RecyclerView mRecyclerView;
     private RecyclerView.LayoutManager mLayoutManager;
     private MoviesAdapter mMoviesAdapter;
+
+    // List of Movies
     private List<Movie> movieList;
 
     @Nullable
@@ -27,6 +34,8 @@ public class MainActivityListFragment extends Fragment {
 
         mRecyclerView = view.findViewById(R.id.rvMovie);
         mLayoutManager = new LinearLayoutManager(getContext());
+        // HORIZONTAL scrolling
+        // mLayoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
         mRecyclerView.addItemDecoration(new DividerItemDecoration(getContext(), LinearLayoutManager.VERTICAL));
@@ -35,6 +44,26 @@ public class MainActivityListFragment extends Fragment {
         mMoviesAdapter = new MoviesAdapter(movieList);
         mRecyclerView.setAdapter(mMoviesAdapter);
 
+        mRecyclerView.addOnItemTouchListener(new MovieTouchListener(getContext(), mRecyclerView, new MovieTouchListener.ClickListener() {
+            @Override
+            public void onClick(View view, final int position) {
+                Movie movie = movieList.get(position);
+                Toast.makeText(getContext(), movie.getTitle(), Toast.LENGTH_SHORT).show();
+                TextView textView = (TextView) view.findViewById(R.id.year);
+                textView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Toast.makeText(getContext(), "Single Click on YEAR! " + position, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onLongClick(View view, int position) {
+                Movie movie = movieList.get(position);
+                Toast.makeText(getContext(), movie.getTitle() + " long clicked", Toast.LENGTH_SHORT).show();
+            }
+        }));
         return view;
     }
 
@@ -81,4 +110,5 @@ public class MainActivityListFragment extends Fragment {
 
         mMoviesAdapter.notifyDataSetChanged();
     }
+
 }
