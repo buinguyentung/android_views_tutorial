@@ -1,4 +1,11 @@
 <resources>
     <string name="app_name">07_RecyclerView</string>
     <string name="action_settings">Settings</string>
+
+    <string name="msg_no_movies">No movies found!</string>
+    <string name="lbl_new_movie_title">New Movie</string>
+    <string name="lbl_edit_movie_title">Edit Movie</string>
+    <string name="hint_enter_movie">Enter your movie!</string>
+    <string name="hint_enter_genre">Action</string>
+    <string name="hint_enter_year">2018</string>
 </resources>

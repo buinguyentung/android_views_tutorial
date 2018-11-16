@@ -5,4 +5,9 @@
     <color name="colorAccent">#FF4081</color>
     <color name="year">#999999</color>
     <color name="title">#222222</color>
+
+    <color name="msg_no_movies">#999</color>
+    <color name="hint_enter_movie">#89c3c3c3</color>
+    <color name="timestamp">#858585</color>
+    <color name="movie_list_text">#232323</color>
 </resources>

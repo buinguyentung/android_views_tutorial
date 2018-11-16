@@ -3,4 +3,13 @@
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="row_padding_vertical">10dp</dimen>
+    <dimen name="msg_no_movies">26sp</dimen>
+    <dimen name="margin_top_no_movies">120dp</dimen>
+    <dimen name="lbl_new_movie_title">20sp</dimen>
+    <dimen name="dimen_10">10dp</dimen>
+    <dimen name="input_new_movie">20sp</dimen>
+    <dimen name="dot_height">30dp</dimen>
+    <dimen name="dot_text_size">40sp</dimen>
+    <dimen name="timestamp">14sp</dimen>
+    <dimen name="movie_list_text">18sp</dimen>
 </resources>

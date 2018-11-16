@@ -1,15 +1,19 @@
 package blogspot.pyimlife.a07_recyclerview;
 
 import android.app.Fragment;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,11 +31,22 @@ public class MainActivityListFragment extends Fragment {
     // List of Movies
     private List<Movie> movieList;
 
+    // SQLite DB
+    MovieDatabaseHelper movies_db;
+    TextView noMoviesView;
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_main_list, container, false);
 
+
+        // SQLite DB
+        movies_db = new MovieDatabaseHelper(getContext());
+        movies_db.createDefaultMoviesIfNeed();
+        noMoviesView = view.findViewById(R.id.empty_movies_view);
+
+        // RecyclerView
         mRecyclerView = view.findViewById(R.id.rvMovie);
         mLayoutManager = new LinearLayoutManager(getContext());
         // HORIZONTAL scrolling
@@ -60,8 +75,9 @@ public class MainActivityListFragment extends Fragment {
 
             @Override
             public void onLongClick(View view, int position) {
-                Movie movie = movieList.get(position);
-                Toast.makeText(getContext(), movie.getTitle() + " long clicked", Toast.LENGTH_SHORT).show();
+                //Movie movie = movieList.get(position);
+                //Toast.makeText(getContext(), movie.getTitle() + " long clicked", Toast.LENGTH_SHORT).show();
+                showActionDialog(position);
             }
         }));
         return view;
@@ -71,44 +87,167 @@ public class MainActivityListFragment extends Fragment {
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        setupList();
+        //setupList();
+        movieList.addAll(movies_db.getAllMovies());
+        mMoviesAdapter.notifyDataSetChanged();
+        toggleEmptyMovies();
+
     }
 
-    private void setupList() {
-        Movie movie = new Movie("Song o day song", "Society", "2000");
-        movieList.add(movie);
+    private void showActionDialog(final int position) {
+        CharSequence colors[] = new CharSequence[]{"Edit", "Delete"};
 
-        movie = new Movie("Ha Noi 12 ngay dem", "War", "1991");
-        movieList.add(movie);
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Choose option");
+        builder.setItems(colors, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (which == 0) {
+                    showMovieDialog(true, movieList.get(position), position);
+                } else {
+                    deleteMovie(position);
+                }
+            }
+        });
+        builder.show();
+    }
 
-        movie = new Movie("Toi thay hoa vang tren co xanh", "Family", "2016");
-        movieList.add(movie);
+    /**
+     * Inserting new movie in db
+     * and refreshing the list
+     */
+    private void createMovie(Movie movie) {
+        // inserting note in db and getting
+        // newly inserted note id
+        long id = movies_db.insertMovie(movie);
 
-        movie = new Movie("Ong ngoai tuoi 30", "Family", "2018");
-        movieList.add(movie);
+        // get the newly inserted note from db
+        Movie m = movies_db.getMovie(id);
 
-        movie = new Movie("Nguoi phan xu", "Society", "2017");
-        movieList.add(movie);
+        if (m != null) {
+            // adding new note to array list at 0 position
+            movieList.add(0, m);
 
-        movie = new Movie("Co gai dai duong", "Action & Adventure", "2002");
-        movieList.add(movie);
+            // refreshing the list
+            mMoviesAdapter.notifyDataSetChanged();
 
-        movie = new Movie("18 banh xe cong ly", "Action & Adventure", "1998");
-        movieList.add(movie);
+            toggleEmptyMovies();
+        }
+    }
 
-        movie = new Movie("Hercules", "Animation", "2004");
-        movieList.add(movie);
+    /**
+     * Updating movie in db and updating
+     * item in the list by its position
+     */
+    private void updateMovie(Movie movie, int position) {
+        Movie m = movieList.get(position);
+        // updating movie text
+        m.setTitle(movie.getTitle());
+        m.setGenre(movie.getGenre());
+        m.setYear(movie.getYear());
 
-        movie = new Movie("Star Trek", "Science Fiction", "2009");
-        movieList.add(movie);
+        // updating movie in db
+        movies_db.updateMovie(m);
 
-        movie = new Movie("Up", "Animation", "2009");
-        movieList.add(movie);
+        // refreshing the list
+        movieList.set(position, m);
+        mMoviesAdapter.notifyItemChanged(position);
 
-        movie = new Movie("Avengers", "Science Fiction & Fantasy", "2004");
-        movieList.add(movie);
+        toggleEmptyMovies();
+    }
 
-        mMoviesAdapter.notifyDataSetChanged();
+    /**
+     * Deleting movie from SQLite and removing the
+     * item from the list by its position
+     */
+    private void deleteMovie(int position) {
+        // deleting the movie from db
+        movies_db.deleteMovie(movieList.get(position));
+
+        // removing the movie from the list
+        movieList.remove(position);
+        mMoviesAdapter.notifyItemRemoved(position);
+
+        toggleEmptyMovies();
+    }
+
+    private void toggleEmptyMovies() {
+        // movieList.size() > 0 or
+        if (movies_db.getMoviesCount() > 0) {
+            noMoviesView.setVisibility(View.GONE);
+        } else {
+            noMoviesView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * Shows alert dialog with EditText options to enter / edit a movie.
+     * when shouldUpdate=true, it automatically displays old movie and changes the
+     * button text to UPDATE
+     */
+    public void showMovieDialog(final boolean shouldUpdate, final Movie movie, final int position) {
+        Log.d(TAG, "showMovieDialog");
+
+        LayoutInflater layoutInflaterAndroid = LayoutInflater.from(getContext());
+        View view = layoutInflaterAndroid.inflate(R.layout.movie_dialog, null);
+
+        AlertDialog.Builder alertDialogBuilderUserInput = new AlertDialog.Builder(getContext());
+        alertDialogBuilderUserInput.setView(view);
+
+        final EditText edtTitle = view.findViewById(R.id.edtTitle);
+        final EditText edtGenre= view.findViewById(R.id.edtGenre);
+        final EditText edtYear = view.findViewById(R.id.edtYear);
+        TextView dialogTitle = view.findViewById(R.id.dialog_title);
+        dialogTitle.setText(!shouldUpdate ? getString(R.string.lbl_new_movie_title) : getString(R.string.lbl_edit_movie_title));
+
+        if (shouldUpdate && movie != null) {
+            edtTitle.setText(movie.getTitle());
+            edtGenre.setText(movie.getGenre());
+            edtYear.setText(movie.getYear());
+        }
+        alertDialogBuilderUserInput
+                .setCancelable(false)
+                .setPositiveButton(shouldUpdate ? "update" : "save", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialogBox, int id) {
+
+                    }
+                })
+                .setNegativeButton("cancel",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialogBox, int id) {
+                                dialogBox.cancel();
+                            }
+                        });
+
+        final AlertDialog alertDialog = alertDialogBuilderUserInput.create();
+        alertDialog.show();
+
+        alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Show toast message when no text is entered
+                if (TextUtils.isEmpty(edtTitle.getText().toString())) {
+                    Toast.makeText(getContext(), "Enter Movie!", Toast.LENGTH_SHORT).show();
+                    return;
+                } else {
+                    alertDialog.dismiss();
+                }
+
+                Movie m = new Movie();
+                m.setTitle(edtTitle.getText().toString());
+                m.setGenre(edtGenre.getText().toString());
+                m.setYear(edtYear.getText().toString());
+
+                // check if user updating note
+                if (shouldUpdate && movie != null) {
+                    // update note by it's id
+                    updateMovie(m, position);
+                } else {
+                    // create new note
+                    createMovie(m);
+                }
+            }
+        });
     }
 
 }
